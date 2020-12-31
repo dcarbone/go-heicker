@@ -88,7 +88,7 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 
 	var (
 		act        struct{}
-		infile     io.ReadCloser
+		imageBytes []byte
 		infileName string
 		outname    string
 	)
@@ -143,12 +143,21 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 		// create input file reader
 		case "infile":
 			infileName = part.FileName()
-			infile = http.MaxBytesReader(w, part, ws.maxBytes)
+			mbr := http.MaxBytesReader(w, part, ws.maxBytes)
+			imageBytes, err = ioutil.ReadAll(mbr)
+			_ = mbr.Close()
+			if err != nil {
+				w.Header().Set("Content-Type", "text/plain")
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				_, _ = w.Write([]byte(fmt.Sprintf("Error reading image data: %v", err)))
+				return
+			}
 
 		// limit output name to 512 bytes
 		case "outname":
 			mbr := http.MaxBytesReader(w, part, 512)
 			b, err := ioutil.ReadAll(mbr)
+			_ = mbr.Close()
 			if err != nil {
 				ws.log.Error().Err(err).Msg("Error reading outname")
 				w.Header().Set("Content-Type", "text/plain")
@@ -156,7 +165,6 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 				_, _ = w.Write([]byte(fmt.Sprintf("Error reading outname: %v", err)))
 				return
 			}
-			_ = mbr.Close()
 			outname = string(b)
 
 		case "submit":
@@ -167,7 +175,7 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	img, err := goheif.Decode(infile)
+	img, err := goheif.Decode(bytes.NewBuffer(imageBytes))
 	if err != nil {
 		ws.log.Error().Err(err).Msg("Error decoding file")
 		w.Header().Set("Content-Type", "text/plain")
@@ -193,7 +201,7 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "image/jpeg")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", outname))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s", outname))
 	w.Header().Set("Content-Length", strconv.Itoa(buff.Len()))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(buff.Bytes())
