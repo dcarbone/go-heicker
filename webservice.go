@@ -147,6 +147,7 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 			imageBytes, err = ioutil.ReadAll(mbr)
 			_ = mbr.Close()
 			if err != nil {
+				ws.log.Error().Err(err).Msg("Error reading image data")
 				w.Header().Set("Content-Type", "text/plain")
 				w.WriteHeader(http.StatusUnprocessableEntity)
 				_, _ = w.Write([]byte(fmt.Sprintf("Error reading image data: %v", err)))
@@ -184,7 +185,12 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	atomic.AddUint64(ws.cnt, 1)
+	rdr := bytes.NewReader(imageBytes)
+
+	exif, err := goheif.ExtractExif(rdr)
+	if err != nil {
+		ws.log.Warn().Err(err).Msg("No EXIF data found")
+	}
 
 	if outname == "" {
 		outname = fmt.Sprintf("%s.jpg", path.Base(infileName))
@@ -192,13 +198,24 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 
 	buff := bytes.NewBuffer(nil)
 
-	if err = jpeg.Encode(buff, img, nil); err != nil {
+	iw, err := newWriterExif(buff, exif)
+	if err != nil {
+		ws.log.Error().Err(err).Msg("Error writing EXIF data")
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(fmt.Sprintf("Error writing EXIF data: %v", err)))
+		return
+	}
+
+	if err = jpeg.Encode(iw, img, nil); err != nil {
 		ws.log.Error().Err(err).Msg("Error encoding jpeg")
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf("Error encoding to jpeg: %v", err)))
 		return
 	}
+
+	atomic.AddUint64(ws.cnt, 1)
 
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s", outname))
