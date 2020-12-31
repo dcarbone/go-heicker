@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- css -->
+    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css"/>
+    <link rel="stylesheet" href="css/styles.css"/>
+
+    <title>Heicker</title>
+</head>
+<body>
+<div class="container">
+    <h1>Heicker</h1>
+    <form id="heicker" method="post" action="convert" enctype="multipart/form-data">
+        <label for="infile">File:</label>
+        <br>
+        <input type="file" id="infile" name="infile"/>
+        <br>
+        <label for="outname">Name of resulting file:</label>
+        <br>
+        <input id="outname" name="outname" class="outname" type="text" placeholder="Defaults to input file with .jpg extension">
+        <br>
+        <br>
+        <input type="submit" value="Submit">
+    </form>
+</div>
+</body>
+</html>
