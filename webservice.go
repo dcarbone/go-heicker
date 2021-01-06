@@ -87,7 +87,6 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var (
-		act        struct{}
 		imageBytes []byte
 		infileName string
 		outname    string
@@ -112,8 +111,8 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 		return
 
 	// retrieve action ticket
-	case act = <-ws.act:
-		defer func() { ws.act <- act }()
+	case <-ws.act:
+		defer func() { ws.act <- struct{}{} }()
 	}
 
 	// fetch multipart reader
@@ -139,6 +138,7 @@ func (ws *WebService) postConvert(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte(fmt.Sprintf("Error reading body: %v", err)))
 			return
 		}
+
 		switch part.FormName() {
 		// create input file reader
 		case "infile":
