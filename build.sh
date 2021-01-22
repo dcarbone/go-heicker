@@ -11,7 +11,7 @@ export GOFLAGS="-mod=vendor"
 
 go vet ./...
 
-go build -o="${BUILD_NAME}" -ldflags "\
+go build -o=./dist/"${GOARCH}"/"${BUILD_NAME}" -ldflags "\
 -X main.BuildName=${BUILD_NAME} \
 -X main.BuildDate=${BUILD_DATE} \
 -X main.BuildBranch=${BUILD_BRANCH}"

@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine3.12 as build-stage
+FROM golang:1.15-alpine as build-stage
 MAINTAINER Daniel Carbone <daniel.p.carbone@gmail.com>
 LABEL application=go-heicker
 LABEL description="go-heicker build container"
@@ -10,7 +10,7 @@ WORKDIR /build
 
 RUN ./build.sh
 
-FROM alpine:3.12
+FROM alpine:3
 MAINTAINER Daniel Carbone <daniel.p.carbone@gmail.com>
 LABEL application=go-heicker
 LABEL description="go-heicker deploy container"
